@@ -22,10 +22,6 @@ const callGeminiWithImages = async (apiKey: string, images: ImageData[], prompt:
 
     const textPart: Part = { text: prompt };
 
-    // FIX: Resolved compilation error by moving API parameters into the 'config' object.
-    // Switched to the 'gemini-2.5-flash-image-preview' model, which is recommended for image editing tasks.
-    // Per guidelines for this model, removed 'safetySettings' and added the required 'responseModalities'
-    // parameter to ensure an image is returned.
     const response: GenerateContentResponse = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image-preview',
       contents: { parts: [...imageParts, textPart] },
@@ -34,7 +30,6 @@ const callGeminiWithImages = async (apiKey: string, images: ImageData[], prompt:
       },
     });
 
-    // 1. Verificação primária da resposta: há candidatos?
     if (!response.candidates || response.candidates.length === 0) {
       if (response.promptFeedback?.blockReason) {
         throw new Error(`A solicitação foi bloqueada pela IA. Motivo: ${response.promptFeedback.blockReason}. Tente ajustar as imagens ou o texto.`);
@@ -44,8 +39,6 @@ const callGeminiWithImages = async (apiKey: string, images: ImageData[], prompt:
 
     const candidate = response.candidates[0];
 
-    // 2. Verificar se a geração foi interrompida por um motivo específico (e não por sucesso).
-    // O motivo 'STOP' é normal para uma conclusão bem-sucedida, então o tratamos como sucesso por enquanto.
     if (candidate.finishReason && candidate.finishReason !== 'STOP') {
         let reasonMessage = `Motivo: ${candidate.finishReason}.`;
         if (candidate.finishReason === 'SAFETY') {
@@ -55,20 +48,17 @@ const callGeminiWithImages = async (apiKey: string, images: ImageData[], prompt:
         throw new Error(`A IA não conseguiu concluir a tarefa. ${reasonMessage}`);
     }
 
-    // 3. Verificar se o conteúdo e as partes existem. Este é o ponto crítico do erro anterior.
     if (!candidate.content?.parts || candidate.content.parts.length === 0) {
         const finishDetails = `Motivo do término: ${candidate.finishReason || 'Desconhecido'}. Detalhes: Nenhum detalhe adicional.`;
         throw new Error(`A IA não retornou conteúdo válido. ${finishDetails}`);
     }
 
-    // 4. Procurar pela parte da imagem na resposta.
     const imagePart = candidate.content.parts.find(part => part.inlineData?.data);
 
     if (imagePart?.inlineData) {
       return imagePart.inlineData.data;
     }
 
-    // 5. Se não encontrou uma imagem, verificar se a IA respondeu com texto.
     const textResponse = candidate.content.parts
       .filter(part => part.text)
       .map(part => part.text)
@@ -79,16 +69,13 @@ const callGeminiWithImages = async (apiKey: string, images: ImageData[], prompt:
       throw new Error(`A IA respondeu com texto em vez de uma imagem: "${textResponse}"`);
     }
 
-    // 6. Se não encontrou nem imagem nem texto, é um estado de erro final e inesperado.
     throw new Error("A imagem gerada não foi encontrada na resposta da API. A resposta não continha uma imagem válida.");
 
   } catch (error) {
     console.error("Gemini API Error:", error);
     if (error instanceof Error) {
-      // Re-lança o erro com a mensagem já formatada
       throw error; 
     }
-    // Fallback para erros não-padrão
     throw new Error("Falha na comunicação com a API Gemini.");
   }
 };
@@ -127,4 +114,51 @@ export const refineImage = (
   prompt: string
 ): Promise<string> => {
   return callGeminiWithImages(apiKey, [baseImage], prompt);
+};
+
+// --- Nova Função de Validação ---
+
+type ValidationResult = {
+  valid: boolean;
+  message?: string;
+};
+
+/**
+ * Valida uma chave de API do Gemini fazendo uma chamada de teste de baixo custo.
+ * @param apiKey A chave de API a ser validada.
+ * @returns Uma promessa que resolve com um objeto contendo o status de validade e uma mensagem.
+ */
+export const validateApiKey = async (apiKey: string): Promise<ValidationResult> => {
+  try {
+    if (!apiKey || !apiKey.startsWith('AIza')) {
+      return { valid: false, message: 'Formato de chave de API inválido.' };
+    }
+
+    const ai = new GoogleGenAI({ apiKey });
+    // Usa um modelo de texto para uma validação mais rápida e barata.
+    const model = ai.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+    
+    // Chamada leve para verificar a autenticidade e cota da chave.
+    await model.countTokens("health check");
+
+    return { valid: true };
+
+  } catch (error: any) {
+    console.error("API Key Validation Error:", error);
+
+    const errorMessage = error.toString();
+
+    if (errorMessage.includes('API key not valid')) {
+      return { valid: false, message: 'Chave de API inválida. Verifique a chave e tente novamente.' };
+    }
+    
+    if (error.status === 'RESOURCE_EXHAUSTED' || errorMessage.includes('quota')) {
+      return { 
+        valid: false, 
+        message: 'Cota de uso da chave de API esgotada. Tente novamente mais tarde ou verifique seu plano no Google.' 
+      };
+    }
+
+    return { valid: false, message: 'Não foi possível validar a chave de API. Verifique a conexão com a internet e a chave fornecida.' };
+  }
 };
