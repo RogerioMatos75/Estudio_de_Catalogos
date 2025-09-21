@@ -373,7 +373,7 @@ export default function App(): React.ReactElement {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-100 to-indigo-200">
       <Header onReset={handleResetProject} />
       <main className="p-4 sm:p-6 lg:p-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-7xl mx-auto">
