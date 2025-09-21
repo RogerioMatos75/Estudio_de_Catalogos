@@ -1,0 +1,7 @@
+import React from 'react';
+
+export const SaturationIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <path d="M6.8 11a6 6 0 1 0 10.396 0l-5.197 -8l-5.199 8z" />
+  </svg>
+);
