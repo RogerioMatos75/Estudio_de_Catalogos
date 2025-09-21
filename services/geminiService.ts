@@ -116,7 +116,7 @@ export const refineImage = (
   return callGeminiWithImages(apiKey, [baseImage], prompt);
 };
 
-// --- Nova Função de Validação ---
+// --- Função de Validação Corrigida ---
 
 type ValidationResult = {
   valid: boolean;
@@ -135,11 +135,12 @@ export const validateApiKey = async (apiKey: string): Promise<ValidationResult> 
     }
 
     const ai = new GoogleGenAI({ apiKey });
-    // Usa um modelo de texto para uma validação mais rápida e barata.
-    const model = ai.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
     
-    // Chamada leve para verificar a autenticidade e cota da chave.
-    await model.countTokens("health check");
+    // Usa o método generateContent que sabemos que funciona, com um modelo de texto para um teste leve.
+    await ai.models.generateContent({
+        model: "gemini-1.5-flash-latest",
+        contents: { parts: [{ text: "health check" }] },
+    });
 
     return { valid: true };
 
