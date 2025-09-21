@@ -16,8 +16,11 @@ import { promptStyles } from './prompts';
 import { PaletteIcon } from './components/icons/PaletteIcon';
 import { PaintBrushIcon } from './components/icons/PaintBrushIcon';
 
-
 export default function App(): React.ReactElement {
+  // --- API Key Management ---
+  const [apiKey, setApiKey] = useState<string | null>(null);
+  const [apiKeyInput, setApiKeyInput] = useState<string>('');
+
   const [modelImage, setModelImage] = useState<ImageFile | null>(null);
   const [clothingImage, setClothingImage] = useState<ImageFile | null>(null);
   const [backgroundImage, setBackgroundImage] = useState<ImageFile | null>(null);
@@ -42,6 +45,23 @@ export default function App(): React.ReactElement {
   const [contrast, setContrast] = useState<number>(100);
   const [saturation, setSaturation] = useState<number>(100);
 
+  // --- API Key Persistence ---
+  useEffect(() => {
+    const storedApiKey = localStorage.getItem('geminiApiKey');
+    if (storedApiKey) {
+      setApiKey(storedApiKey);
+    }
+  }, []);
+
+  const handleApiKeySave = () => {
+    if (apiKeyInput.trim()) {
+      const trimmedKey = apiKeyInput.trim();
+      setApiKey(trimmedKey);
+      localStorage.setItem('geminiApiKey', trimmedKey);
+    } else {
+      setError("Por favor, insira uma chave de API válida.");
+    }
+  };
 
   // Load images from IndexedDB on initial render
   useEffect(() => {
@@ -190,6 +210,7 @@ export default function App(): React.ReactElement {
   };
 
   const handleGenerateLook = async () => {
+    if (!apiKey) { setError('Por favor, configure sua chave de API do Gemini primeiro.'); return; }
     if (!modelImage || !clothingImage) {
       setError('Por favor, carregue a imagem do modelo e da peça de roupa.');
       return;
@@ -211,6 +232,7 @@ export default function App(): React.ReactElement {
 
     try {
       const resultBase64 = await generateLook(
+        apiKey,
         { data: modelImage.base64, mimeType: modelImage.mimeType },
         { data: clothingImage.base64, mimeType: clothingImage.mimeType },
         selectedStyle.promptStep1
@@ -230,6 +252,7 @@ export default function App(): React.ReactElement {
   };
 
   const handleCreateScene = async () => {
+    if (!apiKey) { setError('Por favor, configure sua chave de API do Gemini primeiro.'); return; }
     if (!intermediateResultImage || !backgroundImage) {
       setError('Gere um look e carregue uma imagem de fundo primeiro.');
       return;
@@ -252,6 +275,7 @@ export default function App(): React.ReactElement {
 
     try {
       const resultBase64 = await createScene(
+        apiKey,
         { data: intermediateBase64, mimeType: 'image/png' },
         { data: backgroundImage.base64, mimeType: backgroundImage.mimeType },
         selectedStyle.promptStep2
@@ -271,6 +295,7 @@ export default function App(): React.ReactElement {
   };
 
   const handleRefineImage = async () => {
+    if (!apiKey) { setError('Por favor, configure sua chave de API do Gemini primeiro.'); return; }
     if (!finalImage || !refinementPrompt) {
       setError('É necessário ter uma imagem final e uma instrução de refinamento.');
       return;
@@ -284,6 +309,7 @@ export default function App(): React.ReactElement {
 
     try {
       const resultBase64 = await refineImage(
+        apiKey,
         { data: finalImageBase64, mimeType: 'image/png' },
         refinementPrompt
       );
@@ -305,6 +331,46 @@ export default function App(): React.ReactElement {
   const isGenerateLookDisabled = !modelImage || !clothingImage || isLoading;
   const isCreateSceneDisabled = !intermediateResultImage || !backgroundImage || isLoading;
   const isRefineDisabled = !finalImage || !refinementPrompt.trim() || isLoading;
+
+  // --- Conditional Rendering for API Key ---
+  if (!apiKey) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white p-8 rounded-2xl shadow-lg border border-gray-200">
+          <h2 className="text-2xl font-bold text-center text-gray-800 mb-2">Bem-vindo!</h2>
+          <p className="text-center text-gray-600 mb-6">Para começar, por favor, insira sua chave de API do Google Gemini.</p>
+          
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative mb-4" role="alert">
+              <span className="block sm:inline">{error}</span>
+            </div>
+          )}
+
+          <div className="space-y-4">
+            <input
+              type="password"
+              value={apiKeyInput}
+              onChange={(e) => {
+                setApiKeyInput(e.target.value);
+                if (error) setError(null);
+              }}
+              placeholder="Cole sua chave de API aqui"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
+            />
+            <button
+              onClick={handleApiKeySave}
+              className="w-full bg-indigo-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-indigo-700 transition-all duration-300 shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              Salvar e Continuar
+            </button>
+          </div>
+          <p className="text-xs text-gray-500 mt-4 text-center">
+            Sua chave de API é salva apenas no seu navegador e nunca é enviada para nossos servidores.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

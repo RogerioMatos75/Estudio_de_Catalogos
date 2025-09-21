@@ -1,22 +1,20 @@
 // FIX: Import Modality for use in generateContent config and remove unused safety-related imports.
 import { GoogleGenAI, type GenerateContentResponse, type Part, Modality } from "@google/genai";
 
-if (!import.meta.env.VITE_GEMINI_API_KEY) {
-  throw new Error("A variável de ambiente VITE_GEMINI_API_KEY não está definida. Crie um arquivo .env.local e adicione a linha VITE_GEMINI_API_KEY=SUA_CHAVE_API");
-}
-
-const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
-
 type ImageData = { data: string; mimeType: string };
 
 /**
  * Função auxiliar genérica para chamar a API Gemini com um conjunto de imagens e um prompt.
  * Lida com a construção da solicitação, chamada da API e análise robusta da resposta.
+ * @param apiKey A chave de API do Gemini do usuário.
  * @param images Um array de objetos de imagem para incluir na solicitação.
  * @param prompt A instrução de texto para a IA.
  * @returns Uma promessa que resolve com a string base64 da imagem gerada.
  */
-const callGeminiWithImages = async (images: ImageData[], prompt: string): Promise<string> => {
+const callGeminiWithImages = async (apiKey: string, images: ImageData[], prompt: string): Promise<string> => {
+  // Cria a instância do GoogleGenAI dinamicamente com a chave de API fornecida.
+  const ai = new GoogleGenAI({ apiKey });
+
   try {
     const imageParts: Part[] = images.map(image => ({
       inlineData: { data: image.data, mimeType: image.mimeType },
@@ -100,30 +98,33 @@ const callGeminiWithImages = async (images: ImageData[], prompt: string): Promis
  * Etapa 1: Envia a imagem do modelo e da roupa para a IA para criar um "look".
  */
 export const generateLook = (
+  apiKey: string,
   modelImage: ImageData,
   clothingImage: ImageData,
   prompt: string
 ): Promise<string> => {
-  return callGeminiWithImages([modelImage, clothingImage], prompt);
+  return callGeminiWithImages(apiKey, [modelImage, clothingImage], prompt);
 };
 
 /**
  * Etapa 2: Envia a imagem do look gerado e uma imagem de fundo para criar a cena final.
  */
 export const createScene = (
+  apiKey: string,
   dressedModelImage: ImageData,
   backgroundImage: ImageData,
   prompt: string
 ): Promise<string> => {
-  return callGeminiWithImages([dressedModelImage, backgroundImage], prompt);
+  return callGeminiWithImages(apiKey, [dressedModelImage, backgroundImage], prompt);
 };
 
 /**
  * Etapa 3: Envia a imagem final e um novo prompt para refiná-la.
  */
 export const refineImage = (
+  apiKey: string,
   baseImage: ImageData,
   prompt: string
 ): Promise<string> => {
-  return callGeminiWithImages([baseImage], prompt);
+  return callGeminiWithImages(apiKey, [baseImage], prompt);
 };
