@@ -46,7 +46,7 @@ export default function App(): React.ReactElement {
   const [contrast, setContrast] = useState<number>(100);
   const [saturation, setSaturation] = useState<number>(100);
 
-  // --- API Key Persistence ---
+  // --- API Key Persistence & Validation ---
   useEffect(() => {
     const storedApiKey = localStorage.getItem('geminiApiKey');
     if (storedApiKey) {
@@ -100,7 +100,47 @@ export default function App(): React.ReactElement {
     loadImages();
   }, []);
 
-  // ... (rest of the useEffects for saving images remain the same)
+  // Save model image to IndexedDB whenever it changes
+  useEffect(() => {
+    if (!modelImage) return;
+    const save = async () => {
+        try {
+            await saveImageToDB({ id: 'modelImage', base64: modelImage.base64, mimeType: modelImage.mimeType });
+        } catch (err) {
+            console.error("Falha ao salvar a imagem do modelo no IndexedDB", err);
+            setError("Falha ao salvar a imagem do modelo.");
+        }
+    };
+    save();
+  }, [modelImage]);
+
+  // Save clothing image to IndexedDB whenever it changes
+  useEffect(() => {
+    if (!clothingImage) return;
+    const save = async () => {
+      try {
+        await saveImageToDB({ id: 'clothingImage', base64: clothingImage.base64, mimeType: clothingImage.mimeType });
+      } catch (err) {
+        console.error("Falha ao salvar a imagem da roupa no IndexedDB", err);
+        setError("Falha ao salvar a imagem da roupa.");
+      }
+    };
+    save();
+  }, [clothingImage]);
+
+  // Save background image to IndexedDB whenever it changes
+  useEffect(() => {
+    if (!backgroundImage) return;
+    const save = async () => {
+      try {
+         await saveImageToDB({ id: 'backgroundImage', base64: backgroundImage.base64, mimeType: backgroundImage.mimeType });
+      } catch (err) {
+        console.error("Falha ao salvar a imagem de fundo no IndexedDB", err);
+        setError("Falha ao salvar a imagem de fundo.");
+      }
+    };
+    save();
+  }, [backgroundImage]);
 
   const handleModelImageUpload = useCallback(async (file: File) => {
     try {
@@ -337,7 +377,199 @@ export default function App(): React.ReactElement {
       <Header onReset={handleResetProject} />
       <main className="p-4 sm:p-6 lg:p-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-7xl mx-auto">
-          {/* ... (rest of the JSX is the same) ... */}
+          {/* Controls Panel */}
+          <div className="lg:col-span-4 space-y-6">
+            
+            {/* Style Selector */}
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <PaletteIcon className="w-6 h-6 text-gray-500" />
+                  Estilo de Geração
+                </h2>
+                <StyleSelector 
+                  styles={promptStyles}
+                  selectedStyleId={selectedStyleId}
+                  onStyleChange={setSelectedStyleId}
+                  disabled={isLoading}
+                />
+            </div>
+
+            {/* Step 1 */}
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-800 mb-4">Passo 1: Vestir a Modelo</h2>
+              <div className="space-y-4">
+                <ImageUploader
+                  key={`model-${resetKey}`}
+                  id="model-uploader"
+                  label="Imagem do Modelo"
+                  onFileSelect={handleModelImageUpload}
+                  preview={modelImage?.base64 ? `data:${modelImage.mimeType};base64,${modelImage.base64}` : undefined}
+                />
+                <ImageUploader
+                  key={`clothing-${resetKey}`}
+                  id="clothing-uploader"
+                  label="Peça de Roupa"
+                  onFileSelect={handleClothingImageUpload}
+                  preview={clothingImage?.base64 ? `data:${clothingImage.mimeType};base64,${clothingImage.base64}` : undefined}
+                />
+              </div>
+               <button
+                onClick={handleGenerateLook}
+                disabled={isGenerateLookDisabled}
+                className={`w-full mt-6 flex items-center justify-center gap-2 px-6 py-3 text-white font-semibold rounded-lg shadow-md transition-all duration-300 ${
+                  isGenerateLookDisabled
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
+                }`}
+              >
+                <MagicWandIcon className="w-5 h-5" />
+                <span>{isLoading && loadingStep === 'look' ? 'Gerando Look...' : 'Gerar Look'}</span>
+              </button>
+            </div>
+
+            {/* Step 2 */}
+            {intermediateResultImage && (
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 animate-fade-in">
+                <h2 className="text-lg font-semibold text-gray-800 mb-4">Passo 2: Criar a Cena</h2>
+                 <div className="space-y-4">
+                    <ImageUploader
+                      key={`background-${resetKey}`}
+                      id="background-uploader"
+                      label="Imagem de Fundo"
+                      onFileSelect={handleBackgroundImageUpload}
+                      preview={backgroundImage?.base64 ? `data:${backgroundImage.mimeType};base64,${backgroundImage.base64}` : undefined}
+                    />
+                 </div>
+                 <button
+                    onClick={handleCreateScene}
+                    disabled={isCreateSceneDisabled}
+                    className={`w-full mt-6 flex items-center justify-center gap-2 px-6 py-3 text-white font-semibold rounded-lg shadow-md transition-all duration-300 ${
+                      isCreateSceneDisabled
+                        ? 'bg-gray-400 cursor-not-allowed'
+                        : 'bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500'
+                    }`}
+                  >
+                    <MagicWandIcon className="w-5 h-5" />
+                    <span>{isLoading && loadingStep === 'scene' ? 'Criando Cena...' : 'Criar Cena'}</span>
+                  </button>
+              </div>
+            )}
+            
+            {/* Step 3: Creative Refinement */}
+            {finalImage && (
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 animate-fade-in">
+                <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <PaintBrushIcon className="w-6 h-6 text-gray-500" />
+                  Passo 3: Refinamento Criativo
+                </h2>
+                <div className="space-y-4">
+                  <textarea
+                    value={refinementPrompt}
+                    onChange={(e) => setRefinementPrompt(e.target.value)}
+                    placeholder="Ex: close-up do rosto, mostrar a modelo de costas, focar na bolsa..."
+                    className="w-full h-24 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
+                    disabled={isLoading}
+                  />
+                  <button
+                    onClick={handleRefineImage}
+                    disabled={isRefineDisabled}
+                    className={`w-full flex items-center justify-center gap-2 px-6 py-3 text-white font-semibold rounded-lg shadow-md transition-all duration-300 ${
+                      isRefineDisabled
+                        ? 'bg-gray-400 cursor-not-allowed'
+                        : 'bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500'
+                    }`}
+                  >
+                    <MagicWandIcon className="w-5 h-5" />
+                    <span>{isLoading && loadingStep === 'refine' ? 'Refinando...' : 'Refinar Imagem'}</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+
+            {/* Adjustments Panel */}
+            {finalImage && (
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 animate-fade-in">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-lg font-semibold text-gray-800">Ajustes Finais</h2>
+                  <button 
+                      onClick={handleResetAdjustments}
+                      className="text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
+                      disabled={isLoading}
+                  >
+                      Redefinir
+                  </button>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                      <label htmlFor="brightness" className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1">
+                          <SunIcon className="w-5 h-5 text-gray-500" /> Brilho: <span className="font-bold">{brightness}%</span>
+                      </label>
+                      <input
+                          id="brightness"
+                          type="range"
+                          min="0"
+                          max="200"
+                          value={brightness}
+                          onChange={(e) => setBrightness(Number(e.target.value))}
+                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                          disabled={isLoading}
+                      />
+                  </div>
+                  <div>
+                      <label htmlFor="contrast" className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1">
+                          <ContrastIcon className="w-5 h-5 text-gray-500" /> Contraste: <span className="font-bold">{contrast}%</span>
+                      </label>
+                      <input
+                          id="contrast"
+                          type="range"
+                          min="0"
+                          max="200"
+                          value={contrast}
+                          onChange={(e) => setContrast(Number(e.target.value))}
+                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                          disabled={isLoading}
+                      />
+                  </div>
+                  <div>
+                      <label htmlFor="saturation" className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1">
+                          <SaturationIcon className="w-5 h-5 text-gray-500" /> Saturação: <span className="font-bold">{saturation}%</span>
+                      </label>
+                      <input
+                          id="saturation"
+                          type="range"
+                          min="0"
+                          max="200"
+                          value={saturation}
+                          onChange={(e) => setSaturation(Number(e.target.value))}
+                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                          disabled={isLoading}
+                      />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Canvas Panel */}
+          <div className="lg:col-span-8">
+            <div className="bg-white p-2 rounded-2xl shadow-sm border border-gray-200 aspect-w-1 aspect-h-1 lg:aspect-w-3 lg:aspect-h-4 relative">
+              {isLoading && <Loader />}
+              {error && !isLoading && (
+                 <div className="absolute inset-0 flex items-center justify-center bg-red-50 bg-opacity-80 z-20 rounded-xl p-4">
+                    <p className="text-red-700 font-semibold text-center">{error}</p>
+                 </div>
+              )}
+              <Canvas
+                baseImage={modelImage ? `data:${modelImage.mimeType};base64,${modelImage.base64}` : null}
+                generatedImage={finalImage || intermediateResultImage}
+                isFinalImage={!!finalImage}
+                brightness={brightness}
+                contrast={contrast}
+                saturation={saturation}
+              />
+            </div>
+          </div>
         </div>
       </main>
     </div>
