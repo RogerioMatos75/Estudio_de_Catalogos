@@ -3,10 +3,9 @@ import { ResetIcon } from './icons/ResetIcon';
 
 interface HeaderProps {
   onReset: () => void;
-  onForgetApiKey: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onReset, onForgetApiKey }) => {
+export const Header: React.FC<HeaderProps> = ({ onReset }) => {
   return (
     <header className="bg-white shadow-sm border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
@@ -16,21 +15,13 @@ export const Header: React.FC<HeaderProps> = ({ onReset, onForgetApiKey }) => {
           </div>
           <h1 className="text-xl font-bold text-gray-900">Estúdio de Catálogo com IA</h1>
         </div>
-        <div className="flex items-center space-x-4">
-          <button
-            onClick={onForgetApiKey}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
-          >
-            <span>Trocar Chave</span>
-          </button>
-          <button
-            onClick={onReset}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
-          >
-            <ResetIcon className="w-4 h-4" />
-            <span>Novo Projeto</span>
-          </button>
-        </div>
+        <button
+          onClick={onReset}
+          className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+        >
+          <ResetIcon className="w-4 h-4" />
+          <span>Novo Projeto</span>
+        </button>
       </div>
     </header>
   );

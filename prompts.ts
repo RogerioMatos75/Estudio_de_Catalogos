@@ -18,53 +18,35 @@ export const promptStyles: PromptStyle[] = [
     name: 'Realista',
     description: 'Foco em e-commerce, com resultado fiel à realidade.',
     icon: CameraIcon,
-    promptStep1: `Instrução: Vista a modelo (imagem 1) com a roupa (imagem 2).
-Requisitos:
-- O resultado deve ser fotorrealista.
-- Preserve o caimento, dobras e textura do tecido no corpo da modelo.
-- O fundo da imagem gerada deve ser branco e neutro, estilo estúdio.
-- A saída deve ser somente a imagem, sem nenhum texto.`,
-    promptStep2: `Instrução: Coloque a modelo vestida (imagem 1) no cenário de fundo (imagem 2).
-Requisitos:
-- Integre a modelo ao cenário de forma realista.
-- Harmonize iluminação, sombras e perspectiva.
-- A saída deve ser somente a imagem da cena composta, sem nenhum texto.`,
+    promptStep1: `Tarefa: Prova Virtual de Moda.
+
+Receberá duas imagens: uma modelo e uma peça de roupa. Sua única missão é vestir a modelo com a peça de roupa da forma mais fotorrealista possível. Preste atenção ao caimento, dobras do tecido, textura e como a roupa se molda ao corpo. O fundo deve ser neutro e limpo. O resultado final deve ser APENAS a imagem da modelo vestida.`,
+    promptStep2: `Tarefa: Composição de Cena de Moda.
+
+Receberá duas imagens: uma modelo já vestida (imagem principal) e um cenário de fundo. Sua missão é recortar a modelo da imagem principal e integrá-la perfeitamente ao cenário de fundo. Harmonize a iluminação, sombras e perspectiva para que a modelo pareça pertencer naturalmente à cena. O resultado final deve ser APENAS a imagem da cena composta.`,
   },
   {
     id: 'fashion-week',
     name: 'Fashion Week',
     description: 'Visual de passarela com iluminação e poses dramáticas.',
     icon: SparklesIcon,
-    promptStep1: `Instrução: Vista a modelo (imagem 1) com a roupa (imagem 2) para um desfile.
-Requisitos:
-- O visual deve ser dramático, de alta costura.
-- A iluminação deve ser intensa, com luz e sombra marcadas (estilo passarela).
-- A pose da modelo deve ser forte e confiante.
-- O fundo deve ser simples, de desfile.
-- A saída deve ser somente a imagem, sem nenhum texto.`,
-    promptStep2: `Instrução: Coloque a modelo (imagem 1) no cenário de desfile (imagem 2).
-Requisitos:
-- Integre a modelo como a estrela do desfile.
-- A iluminação na modelo deve combinar com as luzes do cenário.
-- Adicione sombras realistas no chão.
-- A saída deve ser somente a imagem da cena, sem nenhum texto.`,
+    promptStep1: `Tarefa: Look de Passarela de Alta Costura.
+
+Receberá uma modelo e uma peça de roupa. Sua missão é transformar a modelo, vestindo-a com a roupa para um desfile de moda de luxo. Crie um visual dramático, com iluminação de passarela intensa (luz e sombra marcadas). A pose da modelo deve ser forte e confiante. O fundo deve ser simples, como o de um desfile. O resultado final deve ser APENAS a imagem da modelo no look de passarela.`,
+    promptStep2: `Tarefa: Composição de Cena de Desfile.
+
+Receberá duas imagens: uma modelo em um look de passarela (imagem principal) e um cenário de fundo de um evento de moda. Sua missão é integrar a modelo ao cenário, fazendo-a parecer a estrela do desfile. Intensifique a iluminação para combinar com as luzes do evento, adicione sombras realistas no chão e ajuste a perspectiva para uma foto de ação. O resultado final deve ser APENAS a imagem da cena do desfile.`,
   },
   {
     id: 'editorial',
     name: 'Editorial',
     description: 'Estilo de revista, com composição artística e conceitual.',
     icon: BookOpenIcon,
-    promptStep1: `Instrução: Vista a modelo (imagem 1) com a roupa (imagem 2).
-Requisitos:
-- Crie uma imagem de arte conceitual, estilo editorial de revista.
-- O estilo deve ser etéreo e artístico, não comercial.
-- O fundo deve ser abstrato ou minimalista para complementar o conceito.
-- A saída deve ser somente a imagem, sem nenhum texto.`,
-    promptStep2: `Instrução: Funda a imagem da modelo (imagem 1) com o fundo artístico (imagem 2).
-Requisitos:
-- Crie uma composição artística e coesa.
-- Integre a modelo ao fundo de forma criativa, usando sobreposições, cores e texturas.
-- O resultado não deve ser uma simples colagem.
-- A saída deve ser somente a imagem da composição final, sem nenhum texto.`,
+    promptStep1: `Tarefa: Fotografia de Moda Editorial.
+
+Receberá uma modelo e uma peça de roupa. Sua missão é criar uma imagem de arte conceitual, vestindo a modelo com a roupa. O estilo deve ser etéreo e artístico, não apenas comercial. Pense em uma capa de revista de moda alternativa. Brinque com texturas e formas de maneira criativa. O fundo deve ser abstrato ou minimalista, complementando o conceito. O resultado final deve ser APENAS a imagem da modelo em estilo editorial.`,
+    promptStep2: `Tarefa: Composição de Arte Editorial.
+
+Receberá duas imagens: uma modelo em estilo editorial (imagem principal) e um fundo artístico/abstrato. Sua missão é fundir as duas imagens em uma única peça de arte coesa. Não se limite a apenas colar a modelo; integre-a de forma criativa. Use a iluminação, as cores e as texturas do fundo para influenciar a modelo, talvez com sobreposições sutis ou reflexos. O resultado final deve ser APENAS a imagem da composição artística final.`,
   },
 ];

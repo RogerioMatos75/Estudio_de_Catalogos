@@ -5,7 +5,7 @@ import { Canvas } from './components/Canvas';
 import { Loader } from './components/Loader';
 import { MagicWandIcon } from './components/icons/MagicWandIcon';
 import type { ImageFile } from './types';
-import { generateLook, createScene, refineImage, validateApiKey } from './services/geminiService';
+import { generateLook, createScene, refineImage } from './services/geminiService';
 import { toBase64 } from './utils/fileUtils';
 import { SunIcon } from './components/icons/SunIcon';
 import { ContrastIcon } from './components/icons/ContrastIcon';
@@ -16,12 +16,8 @@ import { promptStyles } from './prompts';
 import { PaletteIcon } from './components/icons/PaletteIcon';
 import { PaintBrushIcon } from './components/icons/PaintBrushIcon';
 
-export default function App(): React.ReactElement {
-  // --- API Key Management ---
-  const [apiKey, setApiKey] = useState<string | null>(null);
-  const [apiKeyInput, setApiKeyInput] = useState<string>('');
-  const [isVerifyingKey, setIsVerifyingKey] = useState<boolean>(false);
 
+export default function App(): React.ReactElement {
   const [modelImage, setModelImage] = useState<ImageFile | null>(null);
   const [clothingImage, setClothingImage] = useState<ImageFile | null>(null);
   const [backgroundImage, setBackgroundImage] = useState<ImageFile | null>(null);
@@ -46,43 +42,6 @@ export default function App(): React.ReactElement {
   const [contrast, setContrast] = useState<number>(100);
   const [saturation, setSaturation] = useState<number>(100);
 
-  // --- API Key Management Functions ---
-  useEffect(() => {
-    const storedApiKey = localStorage.getItem('geminiApiKey');
-    if (storedApiKey) {
-      setApiKey(storedApiKey);
-    }
-  }, []);
-
-  const handleApiKeySave = async () => {
-    setError(null);
-    const trimmedKey = apiKeyInput.trim();
-
-    if (!trimmedKey) {
-      setError("Por favor, insira uma chave de API.");
-      return;
-    }
-
-    setIsVerifyingKey(true);
-    try {
-      const validationResult = await validateApiKey(trimmedKey);
-      if (validationResult.valid) {
-        setApiKey(trimmedKey);
-        localStorage.setItem('geminiApiKey', trimmedKey);
-      } else {
-        setError(validationResult.message || "Ocorreu um erro desconhecido ao validar a chave.");
-      }
-    } catch (err) {
-        setError("Falha ao conectar com o serviço de validação.");
-    } finally {
-      setIsVerifyingKey(false);
-    }
-  };
-
-  const handleForgetApiKey = () => {
-    setApiKey(null);
-    localStorage.removeItem('geminiApiKey');
-  };
 
   // Load images from IndexedDB on initial render
   useEffect(() => {
@@ -99,13 +58,71 @@ export default function App(): React.ReactElement {
 
       } catch (err) {
         console.error("Falha ao carregar imagens do IndexedDB", err);
-        setError("Não foi possível carregar as imagens salvas.");
+        setError("Não foi possível carregar as imagens salvas. O seu navegador pode estar em modo privado ou com o armazenamento desativado.");
       }
     };
     loadImages();
   }, []);
 
-  // ... (rest of useEffects and handlers are the same)
+  // Save model image to IndexedDB whenever it changes
+  useEffect(() => {
+    if (!modelImage) return;
+
+    const saveModel = async () => {
+        try {
+            const dataToSave = { 
+                id: 'modelImage', 
+                base64: modelImage.base64, 
+                mimeType: modelImage.mimeType 
+            };
+            await saveImageToDB(dataToSave);
+        } catch (err) {
+            console.error("Falha ao salvar a imagem do modelo no IndexedDB", err);
+            setError("Falha ao salvar a imagem do modelo. A imagem pode ser muito grande ou o armazenamento do navegador está cheio.");
+        }
+    };
+    saveModel();
+  }, [modelImage]);
+
+  // Save clothing image to IndexedDB whenever it changes
+  useEffect(() => {
+    if (!clothingImage) return;
+      
+    const saveClothing = async () => {
+      try {
+        const dataToSave = {
+            id: 'clothingImage',
+            base64: clothingImage.base64,
+            mimeType: clothingImage.mimeType
+        };
+        await saveImageToDB(dataToSave);
+      } catch (err) {
+        console.error("Falha ao salvar a imagem da peça de roupa no IndexedDB", err);
+        setError("Falha ao salvar a imagem da roupa. A imagem pode ser muito grande ou o armazenamento do navegador está cheio.");
+      }
+    };
+    saveClothing();
+  }, [clothingImage]);
+
+  // Save background image to IndexedDB whenever it changes
+  useEffect(() => {
+    if (!backgroundImage) return;
+      
+    const saveBackground = async () => {
+      try {
+         const dataToSave = {
+            id: 'backgroundImage',
+            base64: backgroundImage.base64,
+            mimeType: backgroundImage.mimeType
+        };
+        await saveImageToDB(dataToSave);
+      } catch (err) {
+        console.error("Falha ao salvar a imagem de fundo no IndexedDB", err);
+        setError("Falha ao salvar a imagem de fundo. A imagem pode ser muito grande ou o armazenamento do navegador está cheio.");
+      }
+    };
+    saveBackground();
+  }, [backgroundImage]);
 
   const handleModelImageUpload = useCallback(async (file: File) => {
     try {
@@ -173,7 +190,6 @@ export default function App(): React.ReactElement {
   };
 
   const handleGenerateLook = async () => {
-    if (!apiKey) { setError('Por favor, configure sua chave de API do Gemini primeiro.'); return; }
     if (!modelImage || !clothingImage) {
       setError('Por favor, carregue a imagem do modelo e da peça de roupa.');
       return;
@@ -195,7 +211,6 @@ export default function App(): React.ReactElement {
 
     try {
       const resultBase64 = await generateLook(
-        apiKey,
         { data: modelImage.base64, mimeType: modelImage.mimeType },
         { data: clothingImage.base64, mimeType: clothingImage.mimeType },
         selectedStyle.promptStep1
@@ -215,7 +230,6 @@ export default function App(): React.ReactElement {
   };
 
   const handleCreateScene = async () => {
-    if (!apiKey) { setError('Por favor, configure sua chave de API do Gemini primeiro.'); return; }
     if (!intermediateResultImage || !backgroundImage) {
       setError('Gere um look e carregue uma imagem de fundo primeiro.');
       return;
@@ -238,7 +252,6 @@ export default function App(): React.ReactElement {
 
     try {
       const resultBase64 = await createScene(
-        apiKey,
         { data: intermediateBase64, mimeType: 'image/png' },
         { data: backgroundImage.base64, mimeType: backgroundImage.mimeType },
         selectedStyle.promptStep2
@@ -258,7 +271,6 @@ export default function App(): React.ReactElement {
   };
 
   const handleRefineImage = async () => {
-    if (!apiKey) { setError('Por favor, configure sua chave de API do Gemini primeiro.'); return; }
     if (!finalImage || !refinementPrompt) {
       setError('É necessário ter uma imagem final e uma instrução de refinamento.');
       return;
@@ -272,12 +284,11 @@ export default function App(): React.ReactElement {
 
     try {
       const resultBase64 = await refineImage(
-        apiKey,
         { data: finalImageBase64, mimeType: 'image/png' },
         refinementPrompt
       );
       setFinalImage(`data:image/png;base64,${resultBase64}`);
-      setRefinementPrompt('');
+      setRefinementPrompt(''); // Limpa o prompt após o sucesso
     } catch (err) {
       console.error(err);
       if (err instanceof Error) {
@@ -295,51 +306,9 @@ export default function App(): React.ReactElement {
   const isCreateSceneDisabled = !intermediateResultImage || !backgroundImage || isLoading;
   const isRefineDisabled = !finalImage || !refinementPrompt.trim() || isLoading;
 
-  if (!apiKey) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-100 to-indigo-200 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white p-8 rounded-2xl shadow-lg border border-gray-200">
-          <h2 className="text-2xl font-bold text-center text-gray-800 mb-2">Bem-vindo!</h2>
-          <p className="text-center text-gray-600 mb-6">Para começar, por favor, insira sua chave de API do Google Gemini.</p>
-          
-          {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative mb-4" role="alert">
-              <span className="block sm:inline">{error}</span>
-            </div>
-          )}
-
-          <div className="space-y-4">
-            <input
-              type="password"
-              value={apiKeyInput}
-              onChange={(e) => {
-                setApiKeyInput(e.target.value);
-                if (error) setError(null);
-              }}
-              placeholder="Cole sua chave de API aqui"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
-              disabled={isVerifyingKey}
-            />
-            <button
-              onClick={handleApiKeySave}
-              disabled={isVerifyingKey}
-              className={`w-full flex justify-center items-center bg-indigo-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-indigo-700 transition-all duration-300 shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${
-                isVerifyingKey ? 'cursor-not-allowed bg-indigo-400' : ''
-              }`}>
-              {isVerifyingKey ? 'Verificando...' : 'Salvar e Continuar'}
-            </button>
-          </div>
-          <p className="text-xs text-gray-500 mt-4 text-center">
-            Sua chave de API é salva apenas no seu navegador e nunca é enviada para nossos servidores.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-100 to-indigo-200">
-      <Header onReset={handleResetProject} onForgetApiKey={handleForgetApiKey} />
+    <div className="min-h-screen bg-gray-50">
+      <Header onReset={handleResetProject} />
       <main className="p-4 sm:p-6 lg:p-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-7xl mx-auto">
           {/* Controls Panel */}
